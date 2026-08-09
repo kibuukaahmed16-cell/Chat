@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// ---------- Frontend page ----------
+// ---------- Frontend (all in one HTML) ----------
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       border-bottom: 1px solid #30363d;
       padding-bottom: 1rem;
     }
@@ -73,80 +73,135 @@ app.get('/', (req, res) => {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       margin-bottom: 1rem;
     }
-    .card-header .method {
-      font-weight: 700;
+    .method-tabs {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .method-tab {
+      padding: 0.3rem 1.2rem;
+      border-radius: 20px;
+      font-weight: 600;
       font-size: 0.8rem;
-      padding: 4px 12px;
-      border-radius: 16px;
+      cursor: pointer;
+      border: 1px solid #30363d;
+      background: transparent;
+      color: #8b949e;
+      transition: 0.2s;
+    }
+    .method-tab.active {
       background: #238636;
+      border-color: #238636;
       color: #fff;
     }
-    .card-header .endpoint {
+    .method-tab:hover:not(.active) {
+      background: #21262d;
+    }
+    .endpoint {
       font-family: monospace;
       color: #8b949e;
       font-size: 0.9rem;
     }
-    textarea, input {
+    .param-group {
+      margin: 1rem 0;
+    }
+    .param-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #8b949e;
+      margin-bottom: 0.3rem;
+    }
+    .param-group label .required {
+      color: #f85149;
+      margin-left: 4px;
+    }
+    .param-group input, .param-group textarea {
       width: 100%;
       background: #0d1117;
       border: 1px solid #30363d;
       border-radius: 8px;
-      padding: 0.75rem;
+      padding: 0.6rem 0.8rem;
       color: #e6edf3;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.9rem;
-      resize: vertical;
       transition: border-color 0.2s;
     }
-    textarea:focus, input:focus {
+    .param-group input:focus, .param-group textarea:focus {
       outline: none;
       border-color: #4f8cf7;
+    }
+    .param-group textarea {
+      resize: vertical;
+      min-height: 60px;
     }
     .row {
       display: flex;
       gap: 1rem;
       flex-wrap: wrap;
-      margin-top: 0.75rem;
     }
-    .row > * { flex: 1; min-width: 150px; }
-    label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 0.3rem;
-      color: #8b949e;
+    .row .param-group {
+      flex: 1;
+      min-width: 150px;
+    }
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
     }
     .btn {
-      background: #238636;
-      border: none;
-      padding: 0.75rem 2rem;
+      padding: 0.6rem 1.8rem;
       border-radius: 8px;
       font-weight: 600;
-      color: #fff;
+      border: none;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      margin-top: 1rem;
-      font-size: 1rem;
+      transition: 0.2s;
+      font-size: 0.95rem;
     }
-    .btn:hover { background: #2ea043; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-primary {
+      background: #238636;
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: #2ea043; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-secondary {
       background: #21262d;
+      color: #c9d1d9;
       border: 1px solid #30363d;
     }
     .btn-secondary:hover { background: #30363d; }
-    .response-area {
+    .response-card {
+      margin-top: 1.5rem;
+      border-top: 1px solid #30363d;
+      padding-top: 1.5rem;
+    }
+    .response-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #8b949e;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .response-header .method-url {
+      font-family: monospace;
+    }
+    .response-header .status {
+      font-weight: 600;
+    }
+    .response-body {
       background: #0d1117;
       border: 1px solid #30363d;
       border-radius: 8px;
       padding: 1rem;
-      margin-top: 1rem;
-      min-height: 80px;
-      white-space: pre-wrap;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 70px;
       color: #e6edf3;
     }
     .curl-box {
@@ -180,9 +235,19 @@ app.get('/', (req, res) => {
       margin-top: 0.5rem;
       word-break: break-all;
     }
-    .hidden { display: none; }
-    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #30363d; border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #30363d;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -195,124 +260,193 @@ app.get('/', (req, res) => {
     Send a prompt to Gemini (Google's AI) – session handling is automatic.
   </div>
 
-  <!-- TRY IT OUT -->
   <div class="card">
     <div class="card-header">
-      <span class="method">POST</span>
+      <div class="method-tabs">
+        <button class="method-tab active" data-method="get">GET</button>
+        <button class="method-tab" data-method="post">POST</button>
+      </div>
       <span class="endpoint">/api/chat</span>
     </div>
 
-    <div>
-      <label for="jsonInput">Request Body (JSON)</label>
-      <textarea id="jsonInput" rows="4" style="font-family:monospace;">{
-  "message": "Hello, how are you?",
-  "instruction": "Respond like a helpful assistant"
-}</textarea>
+    <!-- Parameters -->
+    <div class="row">
+      <div class="param-group">
+        <label>message <span class="required">*</span></label>
+        <textarea id="messageInput" rows="2" placeholder="Your prompt...">Hello, how are you?</textarea>
+      </div>
+      <div class="param-group">
+        <label>instruction <span style="color:#8b949e;font-weight:400;">(optional)</span></label>
+        <input id="instructionInput" placeholder="e.g. Respond like a pirate" value="Respond like a helpful assistant">
+      </div>
+    </div>
+    <div class="param-group">
+      <label>sessionId <span style="color:#8b949e;font-weight:400;">(optional – leave blank to auto‑generate)</span></label>
+      <input id="sessionInput" placeholder="Paste existing session ID to continue conversation">
     </div>
 
-    <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.5rem;">
-      <button class="btn" id="executeBtn">🚀 Execute</button>
-      <button class="btn btn-secondary" id="resetBtn">↺ Reset</button>
-    </div>
-
-    <!-- Curl command -->
-    <div class="curl-box" id="curlBox">
-      <span style="color:#58a6ff;">curl</span> -X POST <span style="color:#ff7b72;">"/api/chat"</span> \
-      -H <span style="color:#79c0ff;">"Content-Type: application/json"</span> \
-      -d <span style="color:#ffa657;">'<span id="curlBody">{...}</span>'</span>
-      <button class="copy-btn" id="copyCurlBtn">Copy</button>
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-primary" id="executeBtn">🚀 Execute</button>
+      <button class="btn btn-secondary" id="clearBtn">✕ Clear</button>
     </div>
 
     <!-- Response -->
-    <div style="margin-top:1rem;">
-      <label>Response</label>
-      <div id="responseArea" class="response-area">Awaiting request...</div>
+    <div class="response-card" id="responseCard">
+      <div class="response-header">
+        <span class="method-url" id="responseMethodUrl">METHOD: —</span>
+        <span class="status" id="responseStatus">STATUS: —</span>
+      </div>
+      <div class="response-body" id="responseBody">Awaiting request...</div>
+      <div id="sessionInfo" class="session-info"></div>
     </div>
 
-    <!-- Session ID -->
-    <div id="sessionInfo" class="session-info"></div>
+    <!-- CURL -->
+    <div class="curl-box" id="curlBox">
+      <span style="color:#58a6ff;">curl</span> <span id="curlMethod">-X GET</span> <span style="color:#ff7b72;" id="curlUrl">"/api/chat?message=Hello%2C%20how%20are%20you%3F&instruction=Respond%20like%20a%20helpful%20assistant"</span> <span id="curlHeadersAndData"></span>
+      <button class="copy-btn" id="copyCurlBtn">Copy</button>
+    </div>
   </div>
 </div>
 
 <script>
-  const jsonInput = document.getElementById('jsonInput');
+  // DOM refs
+  const tabs = document.querySelectorAll('.method-tab');
+  const messageInput = document.getElementById('messageInput');
+  const instructionInput = document.getElementById('instructionInput');
+  const sessionInput = document.getElementById('sessionInput');
   const executeBtn = document.getElementById('executeBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const responseArea = document.getElementById('responseArea');
+  const clearBtn = document.getElementById('clearBtn');
+  const responseMethodUrl = document.getElementById('responseMethodUrl');
+  const responseStatus = document.getElementById('responseStatus');
+  const responseBody = document.getElementById('responseBody');
   const sessionInfo = document.getElementById('sessionInfo');
-  const curlBody = document.getElementById('curlBody');
+  const curlMethod = document.getElementById('curlMethod');
+  const curlUrl = document.getElementById('curlUrl');
+  const curlHeadersAndData = document.getElementById('curlHeadersAndData');
   const copyCurlBtn = document.getElementById('copyCurlBtn');
 
-  // Update curl body whenever JSON changes
+  let currentMethod = 'get'; // 'get' or 'post'
+
+  // Tab switching
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentMethod = tab.dataset.method;
+      updateCurl();
+    });
+  });
+
+  // Update curl command on any input change
   function updateCurl() {
-    try {
-      const obj = JSON.parse(jsonInput.value);
-      curlBody.textContent = JSON.stringify(obj, null, 2);
-    } catch {
-      curlBody.textContent = jsonInput.value;
+    const message = encodeURIComponent(messageInput.value);
+    const instruction = encodeURIComponent(instructionInput.value);
+    const session = sessionInput.value.trim();
+    const baseUrl = window.location.origin + '/api/chat';
+
+    if (currentMethod === 'get') {
+      let query = '?message=' + message;
+      if (instruction) query += '&instruction=' + instruction;
+      if (session) query += '&sessionId=' + session;
+      curlMethod.textContent = '-X GET';
+      curlUrl.textContent = '"' + baseUrl + query + '"';
+      curlHeadersAndData.textContent = '';
+    } else {
+      // POST
+      const bodyObj = { message: messageInput.value };
+      if (instructionInput.value.trim()) bodyObj.instruction = instructionInput.value.trim();
+      if (sessionInput.value.trim()) bodyObj.sessionId = sessionInput.value.trim();
+      const bodyStr = JSON.stringify(bodyObj, null, 2);
+      curlMethod.textContent = '-X POST';
+      curlUrl.textContent = '"' + baseUrl + '"';
+      curlHeadersAndData.textContent = '\\\n  -H "Content-Type: application/json" \\\n  -d \'' + bodyStr + '\'';
     }
   }
-  jsonInput.addEventListener('input', updateCurl);
+  // update on input
+  [messageInput, instructionInput, sessionInput].forEach(el => el.addEventListener('input', updateCurl));
+  // initial
   updateCurl();
 
   // Execute
   executeBtn.addEventListener('click', async () => {
-    let body;
-    try {
-      body = JSON.parse(jsonInput.value);
-    } catch (e) {
-      responseArea.textContent = '❌ Invalid JSON: ' + e.message;
+    const message = messageInput.value.trim();
+    if (!message) {
+      responseBody.textContent = '❌ "message" is required.';
       return;
     }
-
-    // Ensure at least message
-    if (!body.message) {
-      responseArea.textContent = '❌ "message" field is required.';
-      return;
-    }
+    const instruction = instructionInput.value.trim() || undefined;
+    const sessionId = sessionInput.value.trim() || undefined;
 
     executeBtn.disabled = true;
     executeBtn.innerHTML = '<span class="spinner"></span> Sending...';
-    responseArea.textContent = '...';
+    responseBody.textContent = '...';
+    responseMethodUrl.textContent = 'METHOD: —';
+    responseStatus.textContent = 'STATUS: —';
     sessionInfo.textContent = '';
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Request failed');
+      let url = '/api/chat';
+      let options = {
+        method: currentMethod.toUpperCase(),
+        headers: {}
+      };
 
-      // Display response
-      responseArea.textContent = data.text || '(empty response)';
-
-      // Show session ID
-      if (data.sessionId) {
-        sessionInfo.textContent = '🧾 Session ID (auto‑generated): ' + data.sessionId;
-        // Optionally embed it in the JSON editor for continuity?
-        // We'll just show it.
+      if (currentMethod === 'get') {
+        const params = new URLSearchParams({ message });
+        if (instruction) params.append('instruction', instruction);
+        if (sessionId) params.append('sessionId', sessionId);
+        url += '?' + params.toString();
+      } else {
+        options.headers['Content-Type'] = 'application/json';
+        const body = { message };
+        if (instruction) body.instruction = instruction;
+        if (sessionId) body.sessionId = sessionId;
+        options.body = JSON.stringify(body);
       }
 
-      // Update curl body with the actual request we sent (including any auto-added fields? but we don't auto-add anything)
+      const startTime = performance.now();
+      const res = await fetch(url, options);
+      const endTime = performance.now();
+      const responseTime = Math.round(endTime - startTime);
+
+      const data = await res.json();
+
+      // Show response meta
+      responseMethodUrl.textContent = 'METHOD: ' + currentMethod.toUpperCase() + ' | URL: ' + window.location.origin + url;
+      responseStatus.textContent = 'STATUS: ' + res.status + ' (' + responseTime + 'ms)';
+
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+
+      // Display formatted JSON
+      responseBody.textContent = JSON.stringify(data, null, 2);
+
+      // Show session ID if present
+      if (data.sessionId) {
+        sessionInfo.textContent = '🧾 Session ID (auto‑generated): ' + data.sessionId;
+        // Optionally fill the session input for next request
+        // sessionInput.value = data.sessionId; // (uncomment to auto-fill)
+      }
     } catch (err) {
-      responseArea.textContent = '❌ Error: ' + err.message;
+      responseBody.textContent = '❌ Error: ' + err.message;
     } finally {
       executeBtn.disabled = false;
-      executeBtn.textContent = '🚀 Execute';
+      executeBtn.innerHTML = '🚀 Execute';
+      // update curl (in case session was auto-filled? but we didn't fill)
+      updateCurl();
     }
   });
 
-  // Reset
-  resetBtn.addEventListener('click', () => {
-    jsonInput.value = JSON.stringify({
-      message: 'Hello, how are you?',
-      instruction: 'Respond like a helpful assistant'
-    }, null, 2);
-    updateCurl();
-    responseArea.textContent = 'Awaiting request...';
+  // Clear
+  clearBtn.addEventListener('click', () => {
+    messageInput.value = '';
+    instructionInput.value = '';
+    sessionInput.value = '';
+    responseBody.textContent = 'Awaiting request...';
+    responseMethodUrl.textContent = 'METHOD: —';
+    responseStatus.textContent = 'STATUS: —';
     sessionInfo.textContent = '';
+    updateCurl();
   });
 
   // Copy curl
@@ -324,8 +458,8 @@ app.get('/', (req, res) => {
     }).catch(() => alert('Could not copy.'));
   });
 
-  // Auto-send on Ctrl+Enter
-  jsonInput.addEventListener('keydown', (e) => {
+  // Ctrl+Enter to send
+  messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       executeBtn.click();
@@ -338,33 +472,12 @@ app.get('/', (req, res) => {
 });
 
 // ---------- API Endpoints ----------
-// GET /api/chat – documentation / info
-app.get('/api/chat', (req, res) => {
-  res.json({
-    description: 'Gemini AI chat endpoint',
-    usage: {
-      method: 'POST',
-      endpoint: '/api/chat',
-      body: {
-        message: 'string (required) – your prompt',
-        instruction: 'string (optional) – system instruction',
-        sessionId: 'string (optional) – omit to auto‑generate new session'
-      },
-      response: {
-        text: 'string – AI reply',
-        sessionId: 'string – session ID for continuation'
-      }
-    }
-  });
-});
-
-// POST /api/chat – main chat
-app.post('/api/chat', async (req, res) => {
+// GET /api/chat – support query params
+app.get('/api/chat', async (req, res) => {
   try {
-    const { message, instruction, sessionId } = req.body;
+    const { message, instruction, sessionId } = req.query;
     if (!message) return res.status(400).json({ error: 'message is required' });
 
-    // Call Gemini – sessionId is handled internally (auto‑generated if not given)
     const result = await chat({ message, instruction, sessionId });
     res.json(result);
   } catch (err) {
@@ -373,7 +486,21 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Health check
+// POST /api/chat – support JSON body
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, instruction, sessionId } = req.body;
+    if (!message) return res.status(400).json({ error: 'message is required' });
+
+    const result = await chat({ message, instruction, sessionId });
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+// Health check (optional)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
