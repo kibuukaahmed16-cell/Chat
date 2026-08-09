@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: chatgpt-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: NODE_ENV
+        value: production
+    plan: free
