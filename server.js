@@ -213,12 +213,6 @@ app.get('/', (req, res) => {
       cursor: pointer;
     }
     .curl-box .copy-btn:hover { background: #30363d; }
-    .session-info {
-      color: #8b949e;
-      font-size: 0.8rem;
-      margin-top: 0.5rem;
-      word-break: break-all;
-    }
     .spinner {
       display: inline-block;
       width: 16px;
@@ -239,7 +233,7 @@ app.get('/', (req, res) => {
     <h1>🧪 Gemini API</h1>
     <span class="badge">Free</span>
   </div>
-  <div class="description">Send a prompt to Gemini – session ID auto‑generated.</div>
+  <div class="description">Send a prompt to Gemini – session is handled automatically.</div>
 
   <div class="card">
     <div class="card-header">
@@ -286,7 +280,6 @@ app.get('/', (req, res) => {
         <span class="status" id="responseStatus">STATUS: —</span>
       </div>
       <div class="response-body" id="responseBody">Awaiting request...</div>
-      <div id="sessionInfo" class="session-info"></div>
     </div>
 
     <div class="curl-box" id="curlBox">
@@ -308,7 +301,6 @@ app.get('/', (req, res) => {
   const responseMethodUrl = document.getElementById('responseMethodUrl');
   const responseStatus = document.getElementById('responseStatus');
   const responseBody = document.getElementById('responseBody');
-  const sessionInfo = document.getElementById('sessionInfo');
   const curlMethod = document.getElementById('curlMethod');
   const curlUrl = document.getElementById('curlUrl');
   const curlHeadersAndData = document.getElementById('curlHeadersAndData');
@@ -364,7 +356,6 @@ app.get('/', (req, res) => {
     responseBody.textContent = '...';
     responseMethodUrl.textContent = 'METHOD: —';
     responseStatus.textContent = 'STATUS: —';
-    sessionInfo.textContent = '';
 
     try {
       let url, options = { method: currentMethod.toUpperCase(), headers: {} };
@@ -397,10 +388,9 @@ app.get('/', (req, res) => {
 
       if (!res.ok) throw new Error(data.error || 'Request failed');
 
+      // Remove sessionId from display if present
+      if (data.sessionId) delete data.sessionId;
       responseBody.textContent = JSON.stringify(data, null, 2);
-      if (data.sessionId) {
-        sessionInfo.textContent = '🧾 Session ID (auto‑generated): ' + data.sessionId;
-      }
     } catch (err) {
       responseBody.textContent = '❌ Error: ' + err.message;
     } finally {
@@ -418,7 +408,6 @@ app.get('/', (req, res) => {
     responseBody.textContent = 'Awaiting request...';
     responseMethodUrl.textContent = 'METHOD: —';
     responseStatus.textContent = 'STATUS: —';
-    sessionInfo.textContent = '';
     updateCurl();
   });
 
@@ -449,7 +438,9 @@ app.get('/api/chat', async (req, res) => {
   try {
     const { message, instruction } = req.query;
     if (!message) return res.status(400).json({ error: 'message is required' });
-    const result = await chat({ message, instruction, sessionId: undefined });
+    const result = await chat({ message, instruction });
+    // Never expose sessionId in response
+    delete result.sessionId;
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -460,7 +451,8 @@ app.post('/api/chat', async (req, res) => {
   try {
     const { message, instruction } = req.body;
     if (!message) return res.status(400).json({ error: 'message is required' });
-    const result = await chat({ message, instruction, sessionId: undefined });
+    const result = await chat({ message, instruction });
+    delete result.sessionId;
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
