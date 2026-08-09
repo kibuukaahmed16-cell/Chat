@@ -29,14 +29,14 @@ export class ChatGPT {
     this.oaiDid = cfg.did ?? crypto.randomUUID();
     this.screenWidth = cfg.screenWidth ?? 423;
     this.screenHeight = cfg.screenHeight ?? 965;
-    this.lang = cfg.lang ?? "en-US";
+    this.lang = cfg.lang ?? "id-ID";
     this.buildNumber =
       cfg.buildNumber ?? "prod-69a06c53754594935887d6c16b844885964a78fc";
     this.authToken = cfg.authToken ?? null;
   }
 
   async send(message, opts = {}) {
-    if (!message?.trim()) throw new Error("Message cannot be empty.");
+    if (!message?.trim()) throw new Error("Pesan tidak boleh kosong.");
 
     const {
       conversationId = null,
@@ -98,7 +98,7 @@ export class ChatGPT {
 
   async _uploadImage(filePath, ctx = {}) {
     if (!fs.existsSync(filePath)) {
-      throw new Error(`File not found: ${filePath}`);
+      throw new Error(`File tidak ditemukan: ${filePath}`);
     }
 
     const fileBuffer = fs.readFileSync(filePath);
@@ -121,7 +121,7 @@ export class ChatGPT {
 
     const { upload_url, file_id } = registerRes;
     if (!upload_url || !file_id) {
-      throw new Error(`Failed to register file: ${JSON.stringify(registerRes)}`);
+      throw new Error(`Gagal mendaftar file: ${JSON.stringify(registerRes)}`);
     }
 
     const uploadRes = await _fetch(upload_url, {
@@ -135,7 +135,7 @@ export class ChatGPT {
     });
 
     if (!uploadRes.ok) {
-      throw new Error(`Blob upload failed: HTTP ${uploadRes.status}`);
+      throw new Error(`Upload blob gagal: HTTP ${uploadRes.status}`);
     }
 
     const processBody = {
@@ -543,19 +543,19 @@ export class ChatGPT {
     return { width: 0, height: 0 };
   }
 }
+const client = new ChatGPT({ lang: "id-ID" });
 
-// Helper function to build prompt with system instruction and history
 function buildPrompt({ message, instruction = "", history = [] }) {
   const parts = [];
 
   if (instruction?.trim()) {
     parts.push(
       [
-        "FOLLOW THE SYSTEM INSTRUCTION BELOW STRICTLY.",
-        "Do not summarize, do not ignore, and do not change the requested tag format.",
-        "If the system instruction asks for tags like [ACTION:...] or [RICH:...], output exactly that format.",
-        "Do not wrap the answer with markdown code fences unless the content is RICH:CODE.",
-        "Do not explain the rules. Just answer according to the instruction.",
+        "IKUTI INSTRUKSI SISTEM BERIKUT SECARA KETAT.",
+        "Jangan ringkas, jangan abaikan, dan jangan ubah format tag yang diminta.",
+        "Jika instruksi sistem meminta tag seperti [ACTION:...] atau [RICH:...], keluarkan persis format itu.",
+        "Jangan bungkus jawaban dengan markdown code fence kecuali memang isi RICH:CODE yang diminta.",
+        "Jangan jelaskan aturan. Langsung jawab sesuai instruksi.",
         "",
         "SYSTEM INSTRUCTION:",
         instruction.trim(),
@@ -575,27 +575,26 @@ function buildPrompt({ message, instruction = "", history = [] }) {
       .join("\n");
 
     if (formattedHistory) {
-      parts.push(`CONVERSATION HISTORY:\n${formattedHistory}`);
+      parts.push(`RIWAYAT PERCAKAPAN:\n${formattedHistory}`);
     }
   }
 
   parts.push(
     [
-      "CURRENT USER MESSAGE:",
+      "PESAN USER SAAT INI:",
       String(message || "").trim(),
       "",
-      "OUTPUT RULES:",
-      "- Keep special tag formats exactly as needed.",
-      "- Do not change [ACTION:TYPE param=value] to other variations.",
-      "- Do not change [RICH:TYPE]...[/RICH:TYPE] to regular markdown.",
-      "- Do not add ``` code fences at the beginning or end of the answer.",
+      "ATURAN OUTPUT:",
+      "- Pertahankan format tag spesial secara persis bila dibutuhkan.",
+      "- Jangan ubah [ACTION:TYPE param=value] menjadi variasi lain.",
+      "- Jangan ubah [RICH:TYPE]...[/RICH:TYPE] menjadi markdown biasa.",
+      "- Jangan tambahkan pagar kode ``` di awal atau akhir jawaban.",
     ].join("\n"),
   );
 
   return parts.filter(Boolean).join("\n\n");
 }
 
-// Ensure temp directory exists
 function ensureTempDir() {
   const tempDir = path.join(process.cwd(), "temp");
   if (!fs.existsSync(tempDir)) {
@@ -604,7 +603,6 @@ function ensureTempDir() {
   return tempDir;
 }
 
-// Detect image extension from buffer
 function detectImageExtension(buffer) {
   if (!Buffer.isBuffer(buffer) || buffer.length < 12) {
     return ".jpg";
@@ -637,17 +635,11 @@ function detectImageExtension(buffer) {
   return ".jpg";
 }
 
-// Main chat function - supports all features
 async function chat({
   message,
   instruction = "",
   imageBuffer = null,
   history = [],
-  conversationId = null,
-  parentMessageId = null,
-  webSearch = false,
-  stream = false,
-  onChunk = null,
 } = {}) {
   if (!message?.trim()) {
     throw new Error("Message is required.");
@@ -657,7 +649,6 @@ async function chat({
   let tempFilePath = null;
 
   try {
-    // Handle image upload
     if (imageBuffer) {
       const tempDir = ensureTempDir();
       const ext = detectImageExtension(imageBuffer);
@@ -665,20 +656,10 @@ async function chat({
       fs.writeFileSync(tempFilePath, imageBuffer);
     }
 
-    // Initialize ChatGPT client
-    const client = new ChatGPT({ lang: "en-US" });
-
-    // Send message with options
     const result = await client.send(prompt, {
-      conversationId,
-      parentMessageId,
       imagePath: tempFilePath,
-      webSearch,
-      stream,
-      onChunk,
     });
 
-    // Clean up response text
     const text = String(result?.text || "")
       .replace(/\*\*(.+?)\*\*/g, "*$1*")
       .trim();
@@ -686,13 +667,11 @@ async function chat({
     return {
       text,
       raw: result?.text || text,
-      model: result?.model || "gpt-4",
+      model: result?.model || "gpt52",
       conversationId: result?.conversationId || null,
       messageId: result?.messageId || null,
-      title: result?.title || null,
     };
   } finally {
-    // Clean up temp file
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
     }
